@@ -1,0 +1,184 @@
+# GestureControl configuration
+# Edit this file, then choose "Reload config" from the menu bar icon (or restart).
+#
+# ---------------------------------------------------------------------------
+# POSES the tracker recognises
+#   point         index finger up                      (cursor)
+#   pinch         thumb tip touches index tip           (click / drag)
+#   pinch_middle  thumb tip touches middle tip          (right click)
+#   two           index + middle up  ("peace")          (scroll)
+#   three         index + middle + ring up
+#   palm          all four fingers up (open hand)
+#   fist          closed hand  -> neutral, does nothing (use it to rest)
+#   thumbs_up / thumbs_down
+#   shaka         thumb + pinky out  ("call me")
+#   rock          index + pinky up   ("rock on")
+#   ok            thumb-index circle, other three fingers up
+#   <your_name>   any pose you add with  ./run.sh --train <your_name>
+#
+# GESTURES are named  <pose>_hold  or  <pose>_swipe_<left|right|up|down>.
+# A value can be a plain action string, or a dict:
+#     thumbs_up_hold: { action: "media:volume_up", hold: 0.5, repeat: 0.25 }
+#   hold   = seconds the pose must be held still before it fires
+#   repeat = keep firing every N seconds while still held (0 = fire once)
+#
+# ACTIONS
+#   hotkey:<keys>        any shortcut, e.g. hotkey:cmd+shift+4, hotkey:ctrl+left
+#   media:<key>          volume_up volume_down mute play_pause next previous
+#                        brightness_up brightness_down
+#   window:<cmd>         snap_left snap_right maximize center minimize close
+#                        fullscreen
+#   system:<cmd>         mission_control app_expose show_desktop launchpad
+#                        space_left space_right screenshot screenshot_area
+#                        app_switcher lock_screen
+#   app:<Name>           open/focus an application, e.g. app:Safari
+#   mouse:<cmd>          click double_click right_click scroll_up scroll_down
+#                        (at the current cursor position)
+#   builtin:toggle_pause pause / resume gesture control (works while paused)
+#   builtin:pause / builtin:resume
+#   builtin:voice_listen start listening for a voice command (no wake word needed)
+#   builtin:voice_off / builtin:voice_on   mute / unmute voice commands
+#   none                 do nothing
+# ---------------------------------------------------------------------------
+
+gestures:
+  # Open hand swipes -> desktops / overview
+  palm_swipe_left:  "system:space_left"
+  palm_swipe_right: "system:space_right"
+  palm_swipe_up:    "system:mission_control"
+  palm_swipe_down:  "system:app_expose"
+
+  # Three fingers -> the focused window
+  three_swipe_left:  "window:snap_left"
+  three_swipe_right: "window:snap_right"
+  three_swipe_up:    "window:maximize"
+  three_swipe_down:  "window:minimize"
+  three_hold:        { action: "system:screenshot", hold: 1.0 }
+
+  # Media & volume
+  thumbs_up_hold:   { action: "media:volume_up",   hold: 0.5, repeat: 0.25 }
+  thumbs_down_hold: { action: "media:volume_down", hold: 0.5, repeat: 0.25 }
+  shaka_hold:       { action: "media:play_pause",  hold: 0.7 }
+
+  # Safety-ish ones need a longer hold
+  ok_hold:          { action: "window:close",       hold: 1.2 }
+  rock_hold:        { action: "builtin:toggle_pause", hold: 1.0 }
+
+  # Hold an open hand still -> listen for a voice command
+  palm_hold:        { action: "builtin:voice_listen", hold: 0.8 }
+
+cursor:
+  # Part of the camera image that maps to the whole screen: [x0, y0, x1, y1]
+  # (0..1, mirrored). Smaller box = less arm movement needed.
+  region: [0.20, 0.15, 0.80, 0.70]
+  # One Euro smoothing. Lower min_cutoff = steadier but laggier.
+  # Higher beta = more responsive on fast moves.
+  min_cutoff: 0.9
+  beta: 0.012
+  deadzone_px: 2
+
+scroll:
+  speed: 2500        # pixels scrolled per full-frame hand movement
+  natural: false     # true = content follows your hand like a trackpad
+  horizontal: false
+  min_step: 3
+
+timing:
+  stable_frames: 3     # frames a pose must persist before it counts
+  click_freeze: 0.12   # s the cursor is frozen when a pinch starts (steady clicks)
+  drag_delay: 0.35     # s of pinching before it becomes a drag instead of a click
+  double_click: 0.45   # max s between two pinches for a double click
+  hold_time: 0.8       # default hold duration
+  hold_still: 0.06     # max palm movement (frame units) while holding
+  swipe_window: 0.40   # s over which a swipe is measured
+  swipe_distance: 0.16 # palm travel (frame units) needed for a swipe
+  swipe_cooldown: 0.9
+  lost_reset: 0.3      # s without a hand before smoothing resets
+
+camera:
+  index: 0           # try 1 if you use an external / Continuity camera
+  width: 640
+  height: 480
+  mirror: true
+
+tracking:
+  min_detection_confidence: 0.6
+  min_presence_confidence: 0.5
+  min_tracking_confidence: 0.5
+  pinch_on: 0.28       # thumb-tip distance / hand size to start a pinch
+  pinch_off: 0.40      # ... and to release it (hysteresis)
+  # Personal model from  ./run.sh --train  (models/my_gestures.npz)
+  use_trained_model: true
+  trained_min_confidence: 0.6   # below this, fall back to the built-in rules
+
+ui:
+  preview: true        # show the camera preview window on start
+  menubar: true
+  preview_width: 480
+
+# ---------------------------------------------------------------------------
+# VOICE COMMANDS (offline, Vosk). Nothing is recorded or uploaded.
+#   Train it on your voice:  ./run.sh --train-voice
+#   Test without acting:     ./run.sh --voice-test
+voice:
+  enabled: true
+  # vosk-model-small-en-us-0.15 (US English) or vosk-model-small-en-in-0.4
+  # (Indian English) - re-run setup.sh after changing it.
+  model: vosk-model-small-en-us-0.15
+  wake_word: "computer"        # or a list: ["computer", "hey mac"]
+  # wake_word: "computer, next desktop" or "computer" ... then the command
+  # gesture:   hold an open palm still (palm_hold above), then speak
+  # both:      either of the above        always: no activation needed (risky)
+  activation: both
+  listen_seconds: 5            # how long it keeps listening after activation
+  only_my_voice: true          # needs ./run.sh --train-voice to enrol your voice
+  speaker_threshold: auto      # or a number 0..1 (higher = stricter)
+  min_confidence: 0.55
+
+  # "what you say": action   (use simple, distinct English words)
+  commands:
+    # desktops & windows
+    "next desktop":      "system:space_right"
+    "previous desktop":  "system:space_left"
+    "mission control":   "system:mission_control"
+    "show windows":      "system:app_expose"
+    "show desktop":      "system:show_desktop"
+    "switch app":        "system:app_switcher"
+    "snap left":         "window:snap_left"
+    "snap right":        "window:snap_right"
+    "maximize window":   "window:maximize"
+    "center window":     "window:center"
+    "minimize window":   "window:minimize"
+    "close window":      "window:close"
+    "full screen":       "window:fullscreen"
+    # mouse
+    "click":             "mouse:click"
+    "double click":      "mouse:double_click"
+    "right click":       "mouse:right_click"
+    "scroll up":         "mouse:scroll_up"
+    "scroll down":       "mouse:scroll_down"
+    # editing
+    "copy that":         "hotkey:cmd+c"
+    "paste":             "hotkey:cmd+v"
+    "undo":              "hotkey:cmd+z"
+    "go back":           "hotkey:cmd+["
+    "new tab":           "hotkey:cmd+t"
+    # media
+    "volume up":         "media:volume_up"
+    "volume down":       "media:volume_down"
+    "mute":              "media:mute"
+    "play music":        "media:play_pause"
+    "pause music":       "media:play_pause"
+    "next song":         "media:next"
+    "previous song":     "media:previous"
+    # system
+    "take screenshot":   "system:screenshot"
+    "lock screen":       "system:lock_screen"
+    "open safari":       "app:Safari"
+    "open finder":       "app:Finder"
+    "open terminal":     "app:Terminal"
+    # control
+    "pause gestures":    "builtin:pause"
+    "resume gestures":   "builtin:resume"
+    "stop listening":    "builtin:voice_off"
+    "start listening":   "builtin:voice_on"

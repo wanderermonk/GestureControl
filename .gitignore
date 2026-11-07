@@ -1,0 +1,10 @@
+.venv/
+models/
+__pycache__/
+.pytest_cache/
+*.pyc
+# macOS metadata on external drives
+._*
+
+# auto-excluded (over GitHub's 100MB limit)
+.venv/lib/python3.12/site-packages/mediapipe/tasks/c/libmediapipe.dylib

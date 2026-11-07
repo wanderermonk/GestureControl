@@ -1,0 +1,11 @@
+mediapipe>=0.10.14
+opencv-python>=4.9
+numpy
+pyyaml>=6.0
+rumps>=0.4.0
+pyobjc-framework-Quartz>=10.0
+pyobjc-framework-Cocoa>=10.0
+pyobjc-framework-ApplicationServices>=10.0
+vosk>=0.3.42
+sounddevice>=0.4.6
+pytest>=8.0
